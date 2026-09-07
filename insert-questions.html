@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Make Your Own Questions - DoomsDay QCAB Generator</title>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+            color: #1e1b4b;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        .topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: #4f46e5;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #4b5563;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-links a:hover {
+            color: #4f46e5;
+        }
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .heading {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .heading h1 {
+            margin: 0;
+            font-size: 34px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .heading p {
+            margin-top: 10px;
+            color: #6b7280;
+            font-size: 15px;
+        }
+
+        /* =========================
+           INPUT CARD
+        ========================= */
+
+        .input-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 10px 35px rgba(79, 70, 229, 0.08);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 25px;
+        }
+
+        .label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 9px;
+            color: #312e81;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 125px;
+            resize: vertical;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 14px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 18px;
+        }
+
+        select {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            background: #ffffff;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: #6366f1;
+        }
+
+        .add-btn {
+            margin-top: 20px;
+            width: 100%;
+            border: none;
+            border-radius: 11px;
+            padding: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 7px 20px rgba(79, 70, 229, 0.25);
+        }
+
+        /* =========================
+           QUESTION LIST
+        ========================= */
+
+        .questions-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 10px 35px rgba(79, 70, 229, 0.08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .questions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .questions-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #312e81;
+        }
+
+        .stats {
+            font-size: 13px;
+            font-weight: 700;
+            color: #6366f1;
+            background: #eef2ff;
+            padding: 7px 12px;
+            border-radius: 20px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 35px 10px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .question-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 17px;
+            margin-bottom: 12px;
+            background: #fafaff;
+            transition: 0.2s;
+        }
+
+        .question-item:hover {
+            border-color: #c7d2fe;
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.07);
+        }
+
+        .question-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .question-number {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .question-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .badge {
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 5px 9px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .remove-btn {
+            border: none;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 7px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .remove-btn:hover {
+            background: #fecaca;
+        }
+
+        .question-text {
+            font-size: 15px;
+            line-height: 1.65;
+            color: #1f2937;
+            white-space: pre-wrap;
+        }
+
+        /* =========================
+           BOTTOM ACTIONS
+        ========================= */
+
+        .bottom-actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .clear-btn,
+        .generate-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 11px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .clear-btn {
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #4b5563;
+        }
+
+        .clear-btn:hover {
+            background: #f9fafb;
+        }
+
+        .generate-btn {
+            border: none;
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            box-shadow: 0 7px 18px rgba(16, 185, 129, 0.18);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 650px) {
+
+            .topbar {
+                padding: 13px 15px;
+            }
+
+            .brand {
+                font-size: 17px;
+            }
+
+            .nav-links {
+                gap: 12px;
+            }
+
+            .nav-links a {
+                font-size: 12px;
+            }
+
+            .container {
+                margin: 25px auto;
+                padding: 0 13px;
+            }
+
+            .heading h1 {
+                font-size: 27px;
+            }
+
+            .input-card,
+            .questions-card {
+                padding: 18px;
+            }
+
+            .options {
+                grid-template-columns: 1fr;
+            }
+
+            .bottom-actions {
+                flex-direction: column;
+            }
+
+            .question-top {
+                align-items: flex-start;
+            }
+
+            .question-meta {
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <!-- =========================
+         TOP BAR
+    ========================= -->
+
+    <div class="topbar">
+
+        <div class="brand">
+            DoomsDay QCAB Generator
+        </div>
+
+        <div class="nav-links">
+            <a href="./index.html">Home</a>
+            <a href="#">Feedback</a>
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         MAIN
+    ========================= -->
+
+    <div class="container">
+
+        <div class="heading">
+
+            <h1>Make Your Own Questions</h1>
+
+            <p>
+                Create your own UPSC-style question paper and generate a QCAB instantly.
+            </p>
+
+        </div>
+
+
+        <!-- =========================
+             ADD QUESTION
+        ========================= -->
+
+        <div class="input-card">
+
+            <label class="label">
+                Enter Question
+            </label>
+
+            <textarea
+                id="questionInput"
+                placeholder="Enter your question here..."
+            ></textarea>
+
+
+            <div class="options">
+
+                <div>
+
+                    <label class="label">
+                        Marks
+                    </label>
+
+                    <select id="marksInput">
+
+                        <option value="10">10 Marks</option>
+                        <option value="15">15 Marks</option>
+                        <option value="20">20 Marks</option>
+
+                    </select>
+
+                </div>
+
+
+                <div>
+
+                    <label class="label">
+                        Word Limit
+                    </label>
+
+                    <select id="wordLimitInput">
+
+                        <option value="150">150 Words</option>
+                        <option value="250">250 Words</option>
+                        <option value="300">300 Words</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <button class="add-btn" id="addQuestionBtn">
+                + Add Question
+            </button>
+
+        </div>
+
+
+        <!-- =========================
+             QUESTIONS
+        ========================= -->
+
+        <div class="questions-card">
+
+            <div class="questions-header">
+
+                <h2>Your Questions</h2>
+
+                <div class="stats" id="questionStats">
+                    0 Questions • 0 Marks
+                </div>
+
+            </div>
+
+
+            <div id="questionList">
+
+                <div class="empty" id="emptyMessage">
+                    No questions added yet.<br>
+                    Add your first question above.
+                </div>
+
+            </div>
+
+
+            <div class="bottom-actions">
+
+                <button
+                    class="clear-btn"
+                    id="clearQuestionsBtn"
+                >
+                    Clear All
+                </button>
+
+                <button
+                    class="generate-btn"
+                    id="generateQCAB"
+                    disabled
+                >
+                    Generate QCAB
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         PAGE LOGIC
+    ========================= -->
+
+    <script>
+
+        /*
+         * IMPORTANT:
+         * This is global so generateCustomPDF.js
+         * can directly access it.
+         */
+
+        window.customQuestions = [];
+
+
+        const questionInput =
+            document.getElementById("questionInput");
+
+        const marksInput =
+            document.getElementById("marksInput");
+
+        const wordLimitInput =
+            document.getElementById("wordLimitInput");
+
+        const addQuestionBtn =
+            document.getElementById("addQuestionBtn");
+
+        const clearQuestionsBtn =
+            document.getElementById("clearQuestionsBtn");
+
+        const questionList =
+            document.getElementById("questionList");
+
+        const questionStats =
+            document.getElementById("questionStats");
+
+        const generateButton =
+            document.getElementById("generateQCAB");
+
+
+        /* =========================
+           ADD QUESTION
+        ========================= */
+
+        addQuestionBtn.addEventListener("click", function () {
+
+            const text =
+                questionInput.value.trim();
+
+            const marks =
+                Number(marksInput.value);
+
+            const wordLimit =
+                Number(wordLimitInput.value);
+
+
+            if (!text) {
+
+                alert("Please enter a question.");
+
+                questionInput.focus();
+
+                return;
+            }
+
+
+            window.customQuestions.push({
+
+                question_text: text,
+
+                marks: marks,
+
+                word_limit: wordLimit
+
+            });
+
+
+            questionInput.value = "";
+
+            questionInput.focus();
+
+            renderQuestions();
+
+        });
+
+
+        /* =========================
+           ENTER = ADD QUESTION
+        ========================= */
+
+        questionInput.addEventListener("keydown", function (event) {
+
+            if (
+                event.key === "Enter" &&
+                event.ctrlKey
+            ) {
+
+                addQuestionBtn.click();
+
+            }
+
+        });
+
+
+        /* =========================
+           RENDER QUESTIONS
+        ========================= */
+
+        function renderQuestions() {
+
+            questionList.innerHTML = "";
+
+
+            if (window.customQuestions.length === 0) {
+
+                questionList.innerHTML = `
+                    <div class="empty">
+                        No questions added yet.<br>
+                        Add your first question above.
+                    </div>
+                `;
+
+                questionStats.textContent =
+                    "0 Questions • 0 Marks";
+
+                generateButton.disabled = true;
+
+                return;
+            }
+
+
+            let totalMarks = 0;
+
+
+            window.customQuestions.forEach(
+                function (question, index) {
+
+                    totalMarks += Number(question.marks);
+
+
+                    const item =
+                        document.createElement("div");
+
+                    item.className =
+                        "question-item";
+
+
+                    item.innerHTML = `
+
+                        <div class="question-top">
+
+                            <div class="question-number">
+                                ${index + 1}
+                            </div>
+
+                            <div class="question-meta">
+
+                                <span class="badge">
+                                    ${question.marks} Marks
+                                </span>
+
+                                <span class="badge">
+                                    ${question.word_limit} Words
+                                </span>
+
+                                <button
+                                    class="remove-btn"
+                                    onclick="removeQuestion(${index})"
+                                >
+                                    Remove
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                        <div class="question-text">
+                            ${escapeHTML(question.question_text)}
+                        </div>
+
+                    `;
+
+
+                    questionList.appendChild(item);
+
+                }
+            );
+
+
+            questionStats.textContent =
+                `${window.customQuestions.length} Questions • ${totalMarks} Marks`;
+
+
+            generateButton.disabled = false;
+
+        }
+
+
+        /* =========================
+           REMOVE QUESTION
+        ========================= */
+
+        window.removeQuestion = function (index) {
+
+            window.customQuestions.splice(index, 1);
+
+            renderQuestions();
+
+        };
+
+
+        /* =========================
+           CLEAR ALL
+        ========================= */
+
+        clearQuestionsBtn.addEventListener(
+            "click",
+            function () {
+
+                if (
+                    window.customQuestions.length === 0
+                ) {
+                    return;
+                }
+
+
+                if (
+                    !confirm(
+                        "Are you sure you want to remove all questions?"
+                    )
+                ) {
+                    return;
+                }
+
+
+                window.customQuestions = [];
+
+                renderQuestions();
+
+            }
+        );
+
+
+        /* =========================
+           ESCAPE HTML
+        ========================= */
+
+        function escapeHTML(text) {
+
+            const div =
+                document.createElement("div");
+
+            div.textContent = text;
+
+            return div.innerHTML;
+
+        }
+
+
+        /* Initial render */
+
+        renderQuestions();
+
+    </script>
+
+
+    <!-- =========================
+         PDF GENERATOR
+    ========================= -->
+
+    <script src="./js/generateCustomPDF.js"></script>
+
+</body>
+
+</html>
