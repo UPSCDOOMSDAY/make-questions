@@ -440,6 +440,13 @@
         .upgrade-btn:hover {
             background: #047857;
         }
+
+        .premium-plan {
+            background: #ecfdf5 !important;
+            border-color: #a7f3d0 !important;
+            color: #047857 !important;
+        }
+
         .auth-overlay {
             position: fixed; inset: 0; z-index: 1000;
             display: none; align-items: center; justify-content: center;
@@ -634,7 +641,6 @@
                 <input class="auth-field" id="authPassword" type="password" placeholder="Password" minlength="6" required>
                 <button class="auth-submit" id="authSubmit" type="submit">Login</button>
             </form>
-            <button class="auth-switch" id="forgotPasswordBtn" type="button">Forgot password?</button>
             <button class="auth-switch" id="authSwitchBtn" type="button">Create an account</button>
         </div>
     </div>
@@ -661,7 +667,6 @@
         const authPassword = document.getElementById("authPassword");
         const authSubmit = document.getElementById("authSubmit");
         const authSwitchBtn = document.getElementById("authSwitchBtn");
-        const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
         const authUserBar = document.getElementById("authUserBar");
         const authUserEmail = document.getElementById("authUserEmail");
         const authLogout = document.getElementById("authLogout");
@@ -678,46 +683,13 @@
             authMessage.textContent="";
         }
         authSwitchBtn.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
-
-        forgotPasswordBtn.addEventListener("click", async function(){
-            const email = authEmail.value.trim();
-
-            if(!email){
-                authMessage.textContent = "Enter your email address first.";
-                authEmail.focus();
-                return;
-            }
-
-            forgotPasswordBtn.disabled = true;
-            authMessage.textContent = "Sending password reset email...";
-
-            const resetRedirect =
-                window.location.origin +
-                window.location.pathname.replace(/[^/]+$/, "") +
-                "reset-password.html";
-
-            const { error } =
-                await window.supabaseClient.auth.resetPasswordForEmail(email, {
-                    redirectTo: resetRedirect
-                });
-
-            if(error){
-                authMessage.textContent = error.message;
-            }else{
-                authMessage.textContent =
-                    "Password reset email sent. Please check your inbox.";
-            }
-
-            forgotPasswordBtn.disabled = false;
-        });
-
         authOverlay.addEventListener("click",e=>{if(e.target===authOverlay)closeAuthModal();});
         authForm.addEventListener("submit",async e=>{
             e.preventDefault(); authMessage.textContent=""; authSubmit.disabled=true;
             const email=authEmail.value.trim(), password=authPassword.value;
             try{
                 if(authMode==="signup"){
-                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin + window.location.pathname.replace(/[^/]+$/, "") + "confirmed.html"}});
+                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
                     if(error) throw error;
                     if(data.session){ closeAuthModal(); }
                     else authMessage.textContent="Account created. Please check your email to confirm your account.";
@@ -731,10 +703,11 @@
         });
         authLogout.addEventListener("click",async()=>{await window.supabaseClient.auth.signOut();});
 
-        function updateUsageDisplay(remaining){
+        function updateUsageDisplay(remaining, accessLevel=null, accessExpiresAt=null){
             if(remaining===null){
                 usageCounter.innerHTML = `🎯 Login to generate free QCABs
                     <button type="button" class="usage-login-btn" id="usageLoginBtn">Login</button>`;
+                usageCounter.classList.remove("premium-plan");
                 usageCounter.style.background="#eef2ff";
 
                 const usageLoginBtn = document.getElementById("usageLoginBtn");
@@ -743,6 +716,21 @@
                 }
                 return;
             }
+
+            const level = String(accessLevel || "").toLowerCase();
+            const hasExpiry = !!accessExpiresAt;
+            const expiryValid = !hasExpiry || new Date(accessExpiresAt) > new Date();
+
+            // Premium/paid users have unlimited QCAB generations.
+            if((level === "paid" || level === "premium") && expiryValid){
+                usageCounter.innerHTML = `👑 Current Plan: Premium<br>
+                    <span style="font-size:13px;font-weight:600;">Unlimited QCAB generations</span>`;
+                usageCounter.classList.add("premium-plan");
+                usageCounter.style.background="#ecfdf5";
+                return;
+            }
+
+            usageCounter.classList.remove("premium-plan");
 
             if(remaining===0){
                 usageCounter.innerHTML = `🎯 Free QCAB Generations Remaining: 0
@@ -754,13 +742,56 @@
             }
         }
         window.updateUsageDisplay=updateUsageDisplay;
+
         async function refreshUsage(){
             const {data:{session}}=await window.supabaseClient.auth.getSession();
-            if(!session){updateUsageDisplay(null);return;}
-            const {data,error}=await window.supabaseClient.from("user_usage").select("generations_used, access_level, access_expires_at").eq("user_id",session.user.id).single();
-            if(error){console.error("Usage fetch error:",error);updateUsageDisplay(null);return;}
-            const used=Number(data.generations_used||0);
-            updateUsageDisplay(Math.max(0,5-used));
+
+            if(!session){
+                updateUsageDisplay(null);
+                return;
+            }
+
+            // Usage count is stored in user_usage.
+            const {data:usageData,error:usageError} =
+                await window.supabaseClient
+                    .from("user_usage")
+                    .select("generations_used")
+                    .eq("user_id",session.user.id)
+                    .single();
+
+            // Premium access is stored in user_access.
+            const {data:accessData,error:accessError} =
+                await window.supabaseClient
+                    .from("user_access")
+                    .select("access_level, access_expires_at")
+                    .eq("user_id",session.user.id)
+                    .single();
+
+            if(usageError && usageError.code !== "PGRST116"){
+                console.error("Usage fetch error:",usageError);
+            }
+
+            if(accessError && accessError.code !== "PGRST116"){
+                console.error("Access fetch error:",accessError);
+            }
+
+            const accessLevel =
+                accessData?.access_level ||
+                usageData?.access_level ||
+                "free";
+
+            const accessExpiresAt =
+                accessData?.access_expires_at ||
+                usageData?.access_expires_at ||
+                null;
+
+            const used = Number(usageData?.generations_used || 0);
+
+            updateUsageDisplay(
+                Math.max(0,5-used),
+                accessLevel,
+                accessExpiresAt
+            );
         }
         window.refreshUsage=refreshUsage;
 
