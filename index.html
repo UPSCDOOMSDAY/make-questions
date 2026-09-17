@@ -820,10 +820,42 @@ body::before{
             const email=authEmail.value.trim(), password=authPassword.value;
             try{
                 if(authMode==="signup"){
-                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
+                    const {data,error}=await window.supabaseClient.auth.signUp({
+                        email,
+                        password,
+                        options:{
+                            emailRedirectTo:window.location.href
+                        }
+                    });
+
                     if(error) throw error;
-                    if(data.session){ closeAuthModal(); }
-                    else authMessage.textContent="Account created. Please check your email to confirm your account.";
+
+                    if(data?.user){
+
+                        const {error:initError} =
+                            await window.supabaseClient.rpc(
+                                "initialize_make_questions_user",
+                                {
+                                    p_user_id:data.user.id
+                                }
+                            );
+
+                        if(initError){
+                            console.error(
+                                "User initialization error:",
+                                initError
+                            );
+                            throw new Error(
+                                "Account was created, but QCAB access could not be initialized. Please try again."
+                            );
+                        }
+                    }
+
+                    if(data.session){
+                        closeAuthModal();
+                    }else{
+                        authMessage.textContent="Account created. Please check your email to confirm your account.";
+                    }
                 }else{
                     const {error}=await window.supabaseClient.auth.signInWithPassword({email,password});
                     if(error) throw error;
@@ -891,7 +923,7 @@ body::before{
             const {data:accessData,error:accessError} =
                 await window.supabaseClient
                     .from("user_access")
-                    .select("access_level, access_expires_at")
+                    .select("access_level, access_expires_at, generations_used")
                     .eq("user_id",session.user.id)
                     .maybeSingle();
 
@@ -918,19 +950,8 @@ body::before{
                 return;
             }
 
-            // Free-user usage is checked only when the account is not Premium.
-            const {data:usageData,error:usageError} =
-                await window.supabaseClient
-                    .from("user_usage")
-                    .select("generations_used")
-                    .eq("user_id",session.user.id)
-                    .maybeSingle();
-
-            if(usageError){
-                console.error("Usage fetch error:",usageError);
-            }
-
-            const used = Number(usageData?.generations_used || 0);
+            // Free-user usage is stored directly in user_access.
+            const used = Number(accessData?.generations_used || 0);
 
             updateUsageDisplay(
                 Math.max(0,5-used),
