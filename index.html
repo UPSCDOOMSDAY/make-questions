@@ -634,6 +634,7 @@
                 <input class="auth-field" id="authPassword" type="password" placeholder="Password" minlength="6" required>
                 <button class="auth-submit" id="authSubmit" type="submit">Login</button>
             </form>
+            <button class="auth-switch" id="forgotPasswordBtn" type="button">Forgot password?</button>
             <button class="auth-switch" id="authSwitchBtn" type="button">Create an account</button>
         </div>
     </div>
@@ -660,6 +661,7 @@
         const authPassword = document.getElementById("authPassword");
         const authSubmit = document.getElementById("authSubmit");
         const authSwitchBtn = document.getElementById("authSwitchBtn");
+        const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
         const authUserBar = document.getElementById("authUserBar");
         const authUserEmail = document.getElementById("authUserEmail");
         const authLogout = document.getElementById("authLogout");
@@ -676,13 +678,46 @@
             authMessage.textContent="";
         }
         authSwitchBtn.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
+
+        forgotPasswordBtn.addEventListener("click", async function(){
+            const email = authEmail.value.trim();
+
+            if(!email){
+                authMessage.textContent = "Enter your email address first.";
+                authEmail.focus();
+                return;
+            }
+
+            forgotPasswordBtn.disabled = true;
+            authMessage.textContent = "Sending password reset email...";
+
+            const resetRedirect =
+                window.location.origin +
+                window.location.pathname.replace(/[^/]+$/, "") +
+                "reset-password.html";
+
+            const { error } =
+                await window.supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: resetRedirect
+                });
+
+            if(error){
+                authMessage.textContent = error.message;
+            }else{
+                authMessage.textContent =
+                    "Password reset email sent. Please check your inbox.";
+            }
+
+            forgotPasswordBtn.disabled = false;
+        });
+
         authOverlay.addEventListener("click",e=>{if(e.target===authOverlay)closeAuthModal();});
         authForm.addEventListener("submit",async e=>{
             e.preventDefault(); authMessage.textContent=""; authSubmit.disabled=true;
             const email=authEmail.value.trim(), password=authPassword.value;
             try{
                 if(authMode==="signup"){
-                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
+                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin + window.location.pathname.replace(/[^/]+$/, "") + "confirmed.html"}});
                     if(error) throw error;
                     if(data.session){ closeAuthModal(); }
                     else authMessage.textContent="Account created. Please check your email to confirm your account.";
