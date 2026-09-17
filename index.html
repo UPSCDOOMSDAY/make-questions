@@ -271,6 +271,8 @@ select{
 }
 .auth-submit:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(79,70,229,.26)}
 .auth-switch{width:100%;border:0;background:transparent;color:#4f46e5;margin-top:14px;cursor:pointer;font-weight:800}
+.forgot-password-btn{width:100%;border:0;background:transparent;color:#6b7280;margin-top:12px;cursor:pointer;font-size:13px;font-weight:700;transition:.2s ease}
+.forgot-password-btn:hover{color:#4f46e5;text-decoration:underline}
 .auth-message{min-height:20px;margin-bottom:10px;font-size:13px;color:#dc2626}
 .user-bar{display:none;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:0 auto 15px;font-size:13px;color:#4b5563}
 .logout-btn{border:1px solid #fecaca;background:#fee2e2;padding:8px 12px;border-radius:9px;cursor:pointer;font-weight:800;color:#dc2626;transition:.2s ease}
@@ -772,6 +774,7 @@ body::before{
                 <input class="auth-field" id="authPassword" type="password" placeholder="Password" minlength="6" required>
                 <button class="auth-submit" id="authSubmit" type="submit">Login</button>
             </form>
+            <button class="forgot-password-btn" id="forgotPasswordBtn" type="button">Forgot password?</button>
             <button class="auth-switch" id="authSwitchBtn" type="button">Create an account</button>
         </div>
     </div>
@@ -798,6 +801,7 @@ body::before{
         const authPassword = document.getElementById("authPassword");
         const authSubmit = document.getElementById("authSubmit");
         const authSwitchBtn = document.getElementById("authSwitchBtn");
+        const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
         const authUserBar = document.getElementById("authUserBar");
         const authUserEmail = document.getElementById("authUserEmail");
         const authLogout = document.getElementById("authLogout");
@@ -811,9 +815,46 @@ body::before{
             authSubtitle.textContent=mode==="login"?"Login to generate your QCAB.":"Create an account to get 5 free QCAB generations.";
             authSubmit.textContent=mode==="login"?"Login":"Create Account";
             authSwitchBtn.textContent=mode==="login"?"Create an account":"Already have an account? Login";
+            forgotPasswordBtn.style.display=mode==="login"?"block":"none";
+            authMessage.style.color="#dc2626";
             authMessage.textContent="";
         }
         authSwitchBtn.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
+
+        forgotPasswordBtn.addEventListener("click", async function(){
+            const email = authEmail.value.trim();
+
+            if(!email){
+                authMessage.style.color="#dc2626";
+                authMessage.textContent="Enter your email address first.";
+                authEmail.focus();
+                return;
+            }
+
+            forgotPasswordBtn.disabled=true;
+            authMessage.style.color="#6b7280";
+            authMessage.textContent="Sending password reset email...";
+
+            try{
+                const {error} = await window.supabaseClient.auth.resetPasswordForEmail(
+                    email,
+                    {
+                        redirectTo: "https://upscdoomsday.github.io/make-questions/reset-password.html"
+                    }
+                );
+
+                if(error) throw error;
+
+                authMessage.style.color="#059669";
+                authMessage.textContent="Password reset email sent. Please check your inbox.";
+            }catch(err){
+                authMessage.style.color="#dc2626";
+                authMessage.textContent=err.message || "Could not send password reset email.";
+            }finally{
+                forgotPasswordBtn.disabled=false;
+            }
+        });
+
         authOverlay.addEventListener("click",e=>{if(e.target===authOverlay)closeAuthModal();});
         authForm.addEventListener("submit",async e=>{
             e.preventDefault(); authMessage.textContent=""; authSubmit.disabled=true;
