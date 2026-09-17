@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Upgrade to Premium - Make Your Own Questions</title>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 55%, #f8f5ff 100%);
+    color: #222;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 50px 20px;
+}
+
+.card {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 40px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+h1 {
+    margin: 0 0 10px;
+    color: #6d28d9;
+    font-size: 34px;
+    line-height: 1.2;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 17px;
+    margin-bottom: 30px;
+}
+
+.price {
+    font-size: 48px;
+    font-weight: 700;
+    color: #111827;
+    margin: 20px 0 5px;
+}
+
+.duration {
+    color: #666;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.one-time {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+.comparison-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 35px 0;
+}
+
+.comparison {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+}
+
+.comparison th,
+.comparison td {
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.comparison th {
+    background: #f3f0ff;
+    color: #5b21b6;
+    font-weight: 700;
+}
+
+.comparison td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+.comparison td:nth-child(3) {
+    font-weight: 600;
+}
+
+.upgrade-btn {
+    display: block;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 17px 25px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(91, 33, 182, 0.25);
+}
+
+.upgrade-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.status {
+    min-height: 22px;
+    margin-top: 20px;
+    font-size: 15px;
+    color: #555;
+}
+
+.security {
+    margin-top: 25px;
+    color: #777;
+    font-size: 13px;
+}
+
+.back-btn {
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+    color: #6d28d9;
+    font-weight: 600;
+}
+
+.back-btn:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+
+    .container {
+        padding: 20px 12px;
+    }
+
+    .card {
+        padding: 28px 16px;
+        border-radius: 15px;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    .subtitle {
+        font-size: 15px;
+    }
+
+    .price {
+        font-size: 40px;
+    }
+
+    .comparison-wrapper {
+        margin: 25px 0;
+    }
+
+    .comparison {
+        min-width: 560px;
+        font-size: 13px;
+    }
+
+    .comparison th,
+    .comparison td {
+        padding: 10px 7px;
+    }
+
+    .upgrade-btn {
+        font-size: 17px;
+        padding: 16px 20px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>Upgrade to Premium</h1>
+
+        <div class="subtitle">
+            Make Your Own Questions — Premium Access
+        </div>
+
+        <div class="price">
+            ₹499
+        </div>
+
+        <div class="duration">
+            Premium access for 6 months
+        </div>
+
+        <div class="one-time">
+            One-time payment • 6 months access
+        </div>
+
+        <div class="comparison-wrapper">
+
+            <table class="comparison">
+
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Free Plan</th>
+                        <th>Premium Plan</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>Custom Questions</td>
+                        <td>5</td>
+                        <td>Unlimited</td>
+                    </tr>
+
+                    <tr>
+                        <td>QCAB Generation</td>
+                        <td>5 free generations</td>
+                        <td>Unlimited</td>
+                    </tr>
+
+                    <tr>
+                        <td>PDF Downloads</td>
+                        <td>5</td>
+                        <td>Unlimited</td>
+                    </tr>
+
+                    <tr>
+                        <td>Validity</td>
+                        <td>Free</td>
+                        <td>6 months</td>
+                    </tr>
+
+                    <tr>
+                        <td>Revision &amp; Practice</td>
+                        <td>Limited usage</td>
+                        <td>Unlimited practice</td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <button
+            id="upgradeButton"
+            class="upgrade-btn"
+            onclick="startPayment()"
+        >
+            Upgrade for ₹499
+        </button>
+
+        <div id="status" class="status"></div>
+
+        <div class="security">
+            🔒 Secure payment powered by Razorpay
+        </div>
+
+        <a
+            href="https://upscdoomsday.github.io/make-questions/"
+            class="back-btn"
+        >
+            ← Back to Make Your Own Questions
+        </a>
+
+    </div>
+
+</div>
+
+<script>
+
+/* =========================================
+   SUPABASE CONFIGURATION
+========================================= */
+
+const SUPABASE_URL =
+    "https://suhcufvujmovwmougyzi.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_Ej6EKW2sVC8cvlh78fFAMQ_geNQgqWG";
+
+
+/* =========================================
+   RAZORPAY EDGE FUNCTIONS
+========================================= */
+
+const CREATE_ORDER_URL =
+    SUPABASE_URL +
+    "/functions/v1/create-razorpay-order";
+
+const VERIFY_PAYMENT_URL =
+    SUPABASE_URL +
+    "/functions/v1/verify-razorpay-payment";
+
+
+/* =========================================
+   SUPABASE CLIENT
+========================================= */
+
+window.supabaseClient =
+    supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+/* =========================================
+   STATUS
+========================================= */
+
+function setStatus(message) {
+
+    document.getElementById("status").textContent =
+        message;
+
+}
+
+
+/* =========================================
+   START PAYMENT
+========================================= */
+
+async function startPayment() {
+
+    const button =
+        document.getElementById("upgradeButton");
+
+    try {
+
+        button.disabled = true;
+
+        setStatus(
+            "Checking your account..."
+        );
+
+
+        /* =====================================
+           CHECK LOGIN
+        ===================================== */
+
+        const {
+            data: {
+                session
+            },
+            error: sessionError
+        } =
+            await window.supabaseClient.auth.getSession();
+
+
+        if (sessionError) {
+            throw sessionError;
+        }
+
+
+        if (!session) {
+
+            setStatus("");
+
+            alert(
+                "Please login first before upgrading to Premium."
+            );
+
+            button.disabled = false;
+
+            return;
+        }
+
+
+        const accessToken =
+            session.access_token;
+
+        const user =
+            session.user;
+
+
+        /* =====================================
+           CREATE RAZORPAY ORDER
+        ===================================== */
+
+        setStatus(
+            "Preparing secure payment..."
+        );
+
+
+        const orderResponse =
+            await fetch(
+                CREATE_ORDER_URL,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Authorization":
+                            "Bearer " + accessToken,
+
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({})
+                }
+            );
+
+
+        const orderData =
+            await orderResponse.json();
+
+
+        if (!orderResponse.ok) {
+
+            throw new Error(
+                orderData.error ||
+                "Unable to create payment order."
+            );
+        }
+
+
+        if (!orderData.order_id) {
+
+            throw new Error(
+                "Razorpay order ID was not returned."
+            );
+        }
+
+
+        /* =====================================
+           OPEN RAZORPAY
+        ===================================== */
+
+        setStatus(
+            "Opening secure payment..."
+        );
+
+
+        const options = {
+
+            key:
+                orderData.key_id,
+
+            amount:
+                orderData.amount,
+
+            currency:
+                orderData.currency,
+
+            name:
+                "DoomsDay QCAB",
+
+            description:
+                "Make Your Own Questions - Premium Access - 6 Months",
+
+            order_id:
+                orderData.order_id,
+
+            prefill: {
+                email:
+                    user.email || ""
+            },
+
+            theme: {
+                color:
+                    "#6d28d9"
+            },
+
+
+            /* =================================
+               PAYMENT SUCCESS
+            ================================= */
+
+            handler:
+                async function(response) {
+
+                    try {
+
+                        setStatus(
+                            "Payment successful. Verifying payment..."
+                        );
+
+
+                        /* =========================
+                           VERIFY PAYMENT
+                        ========================= */
+
+                        const verifyResponse =
+                            await fetch(
+                                VERIFY_PAYMENT_URL,
+                                {
+                                    method: "POST",
+
+                                    headers: {
+                                        "Authorization":
+                                            "Bearer " + accessToken,
+
+                                        "Content-Type":
+                                            "application/json"
+                                    },
+
+                                    body:
+                                        JSON.stringify({
+
+                                            razorpay_order_id:
+                                                response.razorpay_order_id,
+
+                                            razorpay_payment_id:
+                                                response.razorpay_payment_id,
+
+                                            razorpay_signature:
+                                                response.razorpay_signature
+
+                                        })
+                                }
+                            );
+
+
+                        const verifyData =
+                            await verifyResponse.json();
+
+
+                        if (!verifyResponse.ok) {
+
+                            throw new Error(
+                                verifyData.error ||
+                                "Payment verification failed."
+                            );
+                        }
+
+
+                        /* =========================
+                           SUCCESS
+                        ========================= */
+
+                        setStatus(
+                            "Premium activated successfully!"
+                        );
+
+
+                        alert(
+                            "Payment successful! Your Premium access is now active for 6 months."
+                        );
+
+
+                        window.location.href =
+                            "https://upscdoomsday.github.io/make-questions/";
+
+
+                    } catch (error) {
+
+                        console.error(
+                            "Verification error:",
+                            error
+                        );
+
+                        setStatus(
+                            "Payment received, but verification failed. Please contact support."
+                        );
+
+                        alert(
+                            "Payment was received, but we could not verify it automatically. Please contact support and provide your Razorpay payment ID: " +
+                            response.razorpay_payment_id
+                        );
+
+                        button.disabled = false;
+                    }
+                },
+
+
+            /* =================================
+               MODAL CLOSED
+            ================================= */
+
+            modal: {
+
+                ondismiss:
+                    function() {
+
+                        setStatus("");
+
+                        button.disabled =
+                            false;
+
+                    }
+
+            }
+
+        };
+
+
+        const razorpay =
+            new Razorpay(options);
+
+
+        /* =====================================
+           PAYMENT FAILED
+        ===================================== */
+
+        razorpay.on(
+            "payment.failed",
+            function(response) {
+
+                console.error(
+                    "Razorpay payment failed:",
+                    response.error
+                );
+
+                setStatus(
+                    "Payment failed. Please try again."
+                );
+
+                alert(
+                    "Payment failed. Please try again."
+                );
+
+                button.disabled =
+                    false;
+            }
+        );
+
+
+        razorpay.open();
+
+
+    } catch (error) {
+
+        console.error(
+            "Payment error:",
+            error
+        );
+
+        setStatus(
+            "Unable to start payment."
+        );
+
+        alert(
+            error.message ||
+            "Unable to start payment. Please try again."
+        );
+
+        button.disabled =
+            false;
+    }
+
+}
+
+</script>
+
+</body>
+</html>
