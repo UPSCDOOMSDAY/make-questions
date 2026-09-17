@@ -85,15 +85,21 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
         // ==========================================
         // FREE USERS: USE ONE FREE GENERATION
         // ==========================================
+        // Free usage is stored directly in user_access.
+        // No user_usage table or RPC is required.
 
-        const { data: usageResult, error: usageError } =
-            await supabaseClient.rpc("use_free_generation");
+        const { data: currentAccess, error: currentAccessError } =
+            await supabaseClient
+                .from("user_access")
+                .select("generations_used")
+                .eq("user_id", session.user.id)
+                .maybeSingle();
 
-        if (usageError) {
+        if (currentAccessError || !currentAccess) {
 
             console.error(
-                "Usage RPC error:",
-                usageError
+                "Free generation access fetch error:",
+                currentAccessError
             );
 
             alert(
@@ -103,15 +109,15 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
             return;
         }
 
+        const generationsUsed =
+            Number(currentAccess.generations_used || 0);
+
 
         // ==========================================
         // NO GENERATIONS LEFT
         // ==========================================
 
-        if (
-            !usageResult ||
-            usageResult.allowed !== true
-        ) {
+        if (generationsUsed >= 5) {
 
             if (window.updateUsageDisplay) {
 
@@ -128,13 +134,48 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
 
 
         // ==========================================
+        // USE ONE FREE GENERATION
+        // ==========================================
+
+        const newGenerationsUsed =
+            generationsUsed + 1;
+
+        const { data: updatedAccess, error: updateAccessError } =
+            await supabaseClient
+                .from("user_access")
+                .update({
+                    generations_used: newGenerationsUsed
+                })
+                .eq("user_id", session.user.id)
+                .select("generations_used")
+                .maybeSingle();
+
+        if (updateAccessError || !updatedAccess) {
+
+            console.error(
+                "Free generation update error:",
+                updateAccessError
+            );
+
+            alert(
+                "Could not verify your free generation. Please try again."
+            );
+
+            return;
+        }
+
+
+        // ==========================================
         // UPDATE FREE COUNTER
         // ==========================================
 
         if (window.updateUsageDisplay) {
 
             window.updateUsageDisplay(
-                Number(usageResult.remaining)
+                Math.max(
+                    0,
+                    5 - Number(updatedAccess.generations_used || 0)
+                )
             );
 
         }
@@ -178,17 +219,46 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
 
         if (!premiumActive) {
 
-            const { error: refundError } =
-                await supabaseClient.rpc(
-                    "refund_free_generation"
-                );
+            // Refund the consumed generation directly in user_access.
 
-            if (refundError) {
+            const { data: refundAccess, error: refundFetchError } =
+                await supabaseClient
+                    .from("user_access")
+                    .select("generations_used")
+                    .eq("user_id", session.user.id)
+                    .maybeSingle();
+
+            if (refundFetchError || !refundAccess) {
 
                 console.error(
-                    "Generation refund failed:",
-                    refundError
+                    "Generation refund fetch failed:",
+                    refundFetchError
                 );
+
+            } else {
+
+                const currentUsed =
+                    Number(refundAccess.generations_used || 0);
+
+                const refundedUsed =
+                    Math.max(0, currentUsed - 1);
+
+                const { error: refundError } =
+                    await supabaseClient
+                        .from("user_access")
+                        .update({
+                            generations_used: refundedUsed
+                        })
+                        .eq("user_id", session.user.id);
+
+                if (refundError) {
+
+                    console.error(
+                        "Generation refund failed:",
+                        refundError
+                    );
+
+                }
 
             }
 
@@ -1118,7 +1188,6 @@ async function generateQCABPDF(
                         110
 
                     );
-
 
                     doc.setTextColor(
 
