@@ -297,6 +297,203 @@ select{
 }
 </style>
 
+
+<style id="lively-text-animation">
+/* Subtle text motion — visual only */
+@keyframes premiumTextFloat{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-2px)}
+}
+@keyframes premiumShimmer{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.heading h1{
+    background-size:200% auto;
+    animation:premiumShimmer 5s ease-in-out infinite;
+}
+
+.heading p{
+    animation:premiumTextFloat 4s ease-in-out infinite;
+}
+
+.brand{
+    animation:premiumTextFloat 5s ease-in-out infinite;
+}
+
+.questions-header h2{
+    animation:premiumTextFloat 4.5s ease-in-out infinite;
+}
+
+.stats{
+    animation:premiumTextFloat 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion:reduce){
+    .heading h1,.heading p,.brand,.questions-header h2,.stats{
+        animation:none;
+    }
+}
+</style>
+
+
+<style id="animated-geometric-background">
+/* =========================================================
+   CREATIVE ANIMATED GEOMETRIC BACKGROUND — VISUAL ONLY
+========================================================= */
+
+body::after{
+    content:"";
+    position:fixed;
+    inset:-15%;
+    z-index:-2;
+    pointer-events:none;
+    opacity:.55;
+    background:
+        linear-gradient(30deg,transparent 48%,rgba(99,102,241,.055) 49%,rgba(99,102,241,.055) 51%,transparent 52%),
+        linear-gradient(150deg,transparent 48%,rgba(124,58,237,.045) 49%,rgba(124,58,237,.045) 51%,transparent 52%);
+    background-size:130px 130px,170px 170px;
+    animation:geometryDrift 28s linear infinite;
+}
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    opacity:.7;
+    background:
+        radial-gradient(circle at 12% 25%,rgba(99,102,241,.12) 0 2px,transparent 3px),
+        radial-gradient(circle at 83% 22%,rgba(124,58,237,.10) 0 2px,transparent 3px),
+        radial-gradient(circle at 72% 78%,rgba(99,102,241,.09) 0 2px,transparent 3px),
+        radial-gradient(circle at 20% 82%,rgba(124,58,237,.08) 0 2px,transparent 3px);
+    background-size:100% 100%;
+    animation:particlePulse 6s ease-in-out infinite;
+}
+
+/* Moving geometric glow */
+.container::before{
+    content:"";
+    position:fixed;
+    width:280px;
+    height:280px;
+    top:18%;
+    left:-90px;
+    z-index:-1;
+    pointer-events:none;
+    border:1px solid rgba(99,102,241,.12);
+    border-radius:42px;
+    transform:rotate(35deg);
+    box-shadow:
+        0 0 70px rgba(99,102,241,.07),
+        inset 0 0 50px rgba(124,58,237,.035);
+    animation:shapeFloat 18s ease-in-out infinite;
+}
+
+.container::after{
+    content:"";
+    position:fixed;
+    width:210px;
+    height:210px;
+    right:-70px;
+    bottom:10%;
+    z-index:-1;
+    pointer-events:none;
+    border:1px solid rgba(124,58,237,.11);
+    border-radius:50%;
+    box-shadow:
+        0 0 65px rgba(124,58,237,.08),
+        inset 0 0 45px rgba(99,102,241,.035);
+    animation:circleFloat 15s ease-in-out infinite;
+}
+
+@keyframes geometryDrift{
+    from{transform:translate3d(0,0,0) rotate(0deg)}
+    to{transform:translate3d(90px,55px,0) rotate(3deg)}
+}
+
+@keyframes particlePulse{
+    0%,100%{transform:scale(1);opacity:.5}
+    50%{transform:scale(1.04);opacity:.85}
+}
+
+@keyframes shapeFloat{
+    0%,100%{transform:translate(0,0) rotate(35deg)}
+    50%{transform:translate(115px,55px) rotate(55deg)}
+}
+
+@keyframes circleFloat{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(-80px,-55px) scale(1.12)}
+}
+
+@media (max-width:650px){
+    .container::before{
+        width:170px;
+        height:170px;
+        left:-110px;
+    }
+    .container::after{
+        width:130px;
+        height:130px;
+        right:-75px;
+    }
+}
+
+@media (prefers-reduced-motion:reduce){
+    body::after,.container::before,.container::after,body::before{
+        animation:none;
+    }
+}
+</style>
+
+
+<style id="attention-animations">
+/* Subtle periodic attention animations — visual only */
+@keyframes gentleLoginVibrate{
+    0%,84%,100%{transform:translateX(0)}
+    86%{transform:translateX(-2px)}
+    88%{transform:translateX(2px)}
+    90%{transform:translateX(-2px)}
+    92%{transform:translateX(2px)}
+    94%{transform:translateX(0)}
+}
+@keyframes gentleUpgradePulse{
+    0%,82%,100%{transform:translateY(0) scale(1);box-shadow:0 5px 12px rgba(5,150,105,.15)}
+    86%{transform:translateY(-1px) scale(1.035);box-shadow:0 8px 17px rgba(5,150,105,.25)}
+    90%{transform:translateY(0) scale(1)}
+}
+@keyframes premiumPlanPulse{
+    0%,86%,100%{opacity:1}
+    90%{opacity:.72}
+    94%{opacity:1}
+}
+
+/* The login button gently vibrates once every ~9 seconds. */
+.usage-login-btn{
+    animation:gentleLoginVibrate 9s ease-in-out infinite;
+}
+
+/* Upgrade button gets a small periodic nudge once every ~10 seconds. */
+.upgrade-btn{
+    animation:gentleUpgradePulse 10s ease-in-out infinite;
+}
+
+/* Premium status gets a very subtle periodic pulse. */
+.premium-plan{
+    animation:premiumPlanPulse 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion:reduce){
+    .usage-login-btn,.upgrade-btn,.premium-plan{
+        animation:none;
+    }
+}
+</style>
+
 </head>
 
 
