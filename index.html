@@ -479,7 +479,7 @@ body::before{
 
 /* Upgrade button gets a small periodic nudge once every ~10 seconds. */
 .upgrade-btn{
-    animation:gentleUpgradePulse 5s ease-in-out infinite;
+    animation:gentleUpgradePulse 3s ease-in-out infinite;
 }
 
 /* Premium status gets a very subtle periodic pulse. */
@@ -489,6 +489,113 @@ body::before{
 
 @media (prefers-reduced-motion:reduce){
     .usage-login-btn,.upgrade-btn,.premium-plan{
+        animation:none;
+    }
+}
+</style>
+
+
+<style id="final-usage-effects">
+/* =========================================================
+   USAGE STATUS VISUALS — CSS ONLY
+========================================================= */
+
+/* Premium plan: soft expanding ripple */
+@keyframes premiumStatusRipple{
+    0%,72%,100%{
+        box-shadow:
+            0 0 0 0 rgba(16,185,129,0),
+            0 8px 24px rgba(5,150,105,.07);
+    }
+    78%{
+        box-shadow:
+            0 0 0 0 rgba(16,185,129,.18),
+            0 8px 24px rgba(5,150,105,.10);
+    }
+    88%{
+        box-shadow:
+            0 0 0 9px rgba(16,185,129,0),
+            0 8px 24px rgba(5,150,105,.08);
+    }
+}
+
+/* Free limit reached: moving highlight sweep */
+@keyframes freeLimitSweep{
+    0%,68%,100%{transform:translateX(-125%)}
+    82%{transform:translateX(125%)}
+}
+@keyframes freeLimitPulse{
+    0%,68%,100%{box-shadow:0 10px 28px rgba(220,38,38,.07)}
+    78%{box-shadow:0 10px 32px rgba(220,38,38,.14)}
+}
+@keyframes upgradeAttention{
+    0%,72%,100%{
+        transform:scale(1);
+        box-shadow:0 5px 12px rgba(5,150,105,.15);
+    }
+    78%{
+        transform:scale(1.035);
+        box-shadow:0 8px 20px rgba(5,150,105,.25);
+    }
+    84%{
+        transform:scale(1);
+        box-shadow:0 5px 12px rgba(5,150,105,.15);
+    }
+}
+
+/* Premium status only */
+.usage-bar.premium-plan{
+    position:relative;
+    overflow:hidden;
+    animation:premiumStatusRipple 5.5s ease-out infinite;
+}
+
+/* Free user at zero: automatically identified by its existing Upgrade button */
+.usage-bar:has(.upgrade-btn){
+    position:relative;
+    overflow:hidden;
+    border-color:rgba(248,113,113,.32);
+    background:linear-gradient(110deg,#fff5f5,#fffafa,#fff5f5)!important;
+    box-shadow:0 10px 28px rgba(220,38,38,.07);
+    animation:freeLimitPulse 6s ease-in-out infinite;
+}
+
+.usage-bar:has(.upgrade-btn)::after{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:-35%;
+    width:22%;
+    pointer-events:none;
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.75),
+        transparent
+    );
+    transform:translateX(-125%);
+    animation:freeLimitSweep 6s ease-in-out infinite;
+}
+
+/* Keep the actual button compact and give it its own subtle attention pulse */
+.usage-bar .upgrade-btn{
+    position:relative;
+    z-index:1;
+    animation:upgradeAttention 6s ease-in-out infinite;
+}
+
+/* Slightly more polished zero-state text */
+.usage-bar:has(.upgrade-btn){
+    letter-spacing:.05px;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion:reduce){
+    .usage-bar.premium-plan,
+    .usage-bar:has(.upgrade-btn),
+    .usage-bar:has(.upgrade-btn)::after,
+    .usage-bar .upgrade-btn{
         animation:none;
     }
 }
