@@ -140,17 +140,15 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
         const newGenerationsUsed =
             generationsUsed + 1;
 
-        const { data: updatedAccess, error: updateAccessError } =
+        const { error: updateAccessError } =
             await supabaseClient
                 .from("user_access")
                 .update({
                     generations_used: newGenerationsUsed
                 })
-                .eq("user_id", session.user.id)
-                .select("generations_used")
-                .maybeSingle();
+                .eq("user_id", session.user.id);
 
-        if (updateAccessError || !updatedAccess) {
+        if (updateAccessError) {
 
             console.error(
                 "Free generation update error:",
@@ -174,7 +172,7 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
             window.updateUsageDisplay(
                 Math.max(
                     0,
-                    5 - Number(updatedAccess.generations_used || 0)
+                    5 - newGenerationsUsed
                 )
             );
 
