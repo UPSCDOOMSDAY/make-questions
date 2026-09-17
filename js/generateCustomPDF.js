@@ -22,57 +22,125 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
     }
 
     // ==========================================
-    // USE ONE FREE GENERATION
+    // CHECK PREMIUM ACCESS FIRST
     // ==========================================
 
-    const { data: usageResult, error: usageError } =
-        await supabaseClient.rpc("use_free_generation");
+    const { data: accessData, error: accessError } =
+        await supabaseClient
+            .from("user_access")
+            .select("access_level, access_expires_at")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
 
-    if (usageError) {
+    if (accessError) {
 
         console.error(
-            "Usage RPC error:",
-            usageError
+            "Premium access check error:",
+            accessError
         );
 
         alert(
-            "Could not verify your free generation. Please try again."
+            "Could not verify your account access. Please try again."
         );
 
         return;
     }
 
+    const accessLevel =
+        String(accessData?.access_level || "free")
+            .trim()
+            .toLowerCase();
+
+    const accessExpiresAt =
+        accessData?.access_expires_at || null;
+
+    const premiumActive =
+        (accessLevel === "paid" || accessLevel === "premium") &&
+        (
+            !accessExpiresAt ||
+            new Date(accessExpiresAt).getTime() > Date.now()
+        );
+
+
     // ==========================================
-    // NO GENERATIONS LEFT
+    // PREMIUM USERS: UNLIMITED GENERATION
     // ==========================================
 
-    if (
-        !usageResult ||
-        usageResult.allowed !== true
-    ) {
+    if (premiumActive) {
+
+        console.log("Premium user detected - unlimited generation.");
 
         if (window.updateUsageDisplay) {
-            window.updateUsageDisplay(0);
+
+            window.updateUsageDisplay(
+                0,
+                "paid",
+                accessExpiresAt
+            );
+
         }
 
-        alert(
-            "You have used all 5 free QCAB generations. Please upgrade to Premium to continue."
-        );
+    } else {
 
-        return;
+        // ==========================================
+        // FREE USERS: USE ONE FREE GENERATION
+        // ==========================================
+
+        const { data: usageResult, error: usageError } =
+            await supabaseClient.rpc("use_free_generation");
+
+        if (usageError) {
+
+            console.error(
+                "Usage RPC error:",
+                usageError
+            );
+
+            alert(
+                "Could not verify your free generation. Please try again."
+            );
+
+            return;
+        }
+
+
+        // ==========================================
+        // NO GENERATIONS LEFT
+        // ==========================================
+
+        if (
+            !usageResult ||
+            usageResult.allowed !== true
+        ) {
+
+            if (window.updateUsageDisplay) {
+
+                window.updateUsageDisplay(0);
+
+            }
+
+            alert(
+                "You have used all 5 free QCAB generations. Please upgrade to Premium to continue."
+            );
+
+            return;
+        }
+
+
+        // ==========================================
+        // UPDATE FREE COUNTER
+        // ==========================================
+
+        if (window.updateUsageDisplay) {
+
+            window.updateUsageDisplay(
+                Number(usageResult.remaining)
+            );
+
+        }
+
     }
 
-    // ==========================================
-    // UPDATE COUNTER IMMEDIATELY
-    // ==========================================
-
-    if (window.updateUsageDisplay) {
-
-        window.updateUsageDisplay(
-            Number(usageResult.remaining)
-        );
-
-    }
 
     // ==========================================
     // NUMBER QUESTIONS
@@ -84,6 +152,7 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
             i + 1;
 
     });
+
 
     // ==========================================
     // GENERATE PDF
@@ -102,23 +171,29 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
             error
         );
 
+
         // ==========================================
-        // REFUND GENERATION IF PDF GENERATION FAILS
+        // REFUND ONLY FREE GENERATION
         // ==========================================
 
-        const { error: refundError } =
-            await supabaseClient.rpc(
-                "refund_free_generation"
-            );
+        if (!premiumActive) {
 
-        if (refundError) {
+            const { error: refundError } =
+                await supabaseClient.rpc(
+                    "refund_free_generation"
+                );
 
-            console.error(
-                "Generation refund failed:",
-                refundError
-            );
+            if (refundError) {
+
+                console.error(
+                    "Generation refund failed:",
+                    refundError
+                );
+
+            }
 
         }
+
 
         // Refresh counter from database
 
@@ -128,13 +203,17 @@ document.getElementById("generateQCAB").addEventListener("click", async () => {
 
         }
 
+
         alert(
-            "We couldn't generate your QCAB. Your free generation has been restored. Please try again."
+            premiumActive
+                ? "We couldn't generate your QCAB. Please try again."
+                : "We couldn't generate your QCAB. Your free generation has been restored. Please try again."
         );
 
     }
 
 });
+
 
 
 // ==========================================
@@ -154,6 +233,7 @@ function getAnswerPages(q) {
 
     return 2;
 }
+
 
 
 // ==========================================
@@ -188,7 +268,9 @@ function escapePDFHTML(value) {
             /'/g,
             "&#039;"
         );
+
 }
+
 
 
 // ==========================================
@@ -201,6 +283,7 @@ function hasRichQuestion(q) {
         q.question_html.includes("<img");
 
 }
+
 
 
 // ==========================================
@@ -240,6 +323,7 @@ function waitForImages(container) {
     );
 
 }
+
 
 
 // ==========================================
@@ -362,6 +446,7 @@ async function renderQuestionToCanvas(
 }
 
 
+
 // ==========================================
 // ADD CANVAS IMAGE
 // ==========================================
@@ -438,6 +523,7 @@ function addCanvasImage(
     };
 
 }
+
 
 
 // ==========================================
@@ -759,8 +845,10 @@ async function generateQCABPDF(
         288,
 
         {
+
             align:
                 "center"
+
         }
 
     );
@@ -1030,6 +1118,7 @@ async function generateQCABPDF(
                         110
 
                     );
+
 
                     doc.setTextColor(
 
