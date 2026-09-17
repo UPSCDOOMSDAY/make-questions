@@ -522,16 +522,11 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 
 /* =========================================
-   RAZORPAY EDGE FUNCTIONS
+   RAZORPAY PAYMENT LINK
 ========================================= */
 
-const CREATE_ORDER_URL =
-    SUPABASE_URL +
-    "/functions/v1/create-razorpay-order";
-
-const VERIFY_PAYMENT_URL =
-    SUPABASE_URL +
-    "/functions/v1/verify-razorpay-payment";
+const RAZORPAY_PAYMENT_LINK =
+    "https://rzp.io/rzp/K1CgzMA";
 
 
 /* =========================================
@@ -607,257 +602,40 @@ async function startPayment() {
         }
 
 
-        const accessToken =
-            session.access_token;
+        /*
+           Razorpay Payment Link payments are matched
+           to the user's Supabase account by email through
+           the razorpay-webhook Edge Function.
 
-        const user =
-            session.user;
+           Therefore, the user must complete the Razorpay
+           checkout using the SAME email address as their
+           DoomsDay account.
+        */
 
+        const userEmail =
+            session.user?.email || "";
 
-        /* =====================================
-           CREATE RAZORPAY ORDER
-        ===================================== */
-
-        setStatus(
-            "Preparing secure payment..."
-        );
-
-
-        const orderResponse =
-            await fetch(
-                CREATE_ORDER_URL,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Authorization":
-                            "Bearer " + accessToken,
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({})
-                }
-            );
-
-
-        const orderData =
-            await orderResponse.json();
-
-
-        if (!orderResponse.ok) {
-
-            throw new Error(
-                orderData.error ||
-                "Unable to create payment order."
-            );
-        }
-
-
-        if (!orderData.order_id) {
-
-            throw new Error(
-                "Razorpay order ID was not returned."
-            );
-        }
-
-
-        /* =====================================
-           OPEN RAZORPAY
-        ===================================== */
 
         setStatus(
             "Opening secure payment..."
         );
 
 
-        const options = {
-
-            key:
-                orderData.key_id,
-
-            amount:
-                orderData.amount,
-
-            currency:
-                orderData.currency,
-
-            name:
-                "DoomsDay QCAB",
-
-            description:
-                "Make Your Own Questions - Premium Access - 6 Months",
-
-            order_id:
-                orderData.order_id,
-
-            prefill: {
-                email:
-                    user.email || ""
-            },
-
-            theme: {
-                color:
-                    "#6d28d9"
-            },
-
-
-            /* =================================
-               PAYMENT SUCCESS
-            ================================= */
-
-            handler:
-                async function(response) {
-
-                    try {
-
-                        setStatus(
-                            "Payment successful. Verifying payment..."
-                        );
-
-
-                        /* =========================
-                           VERIFY PAYMENT
-                        ========================= */
-
-                        const verifyResponse =
-                            await fetch(
-                                VERIFY_PAYMENT_URL,
-                                {
-                                    method: "POST",
-
-                                    headers: {
-                                        "Authorization":
-                                            "Bearer " + accessToken,
-
-                                        "Content-Type":
-                                            "application/json"
-                                    },
-
-                                    body:
-                                        JSON.stringify({
-
-                                            razorpay_order_id:
-                                                response.razorpay_order_id,
-
-                                            razorpay_payment_id:
-                                                response.razorpay_payment_id,
-
-                                            razorpay_signature:
-                                                response.razorpay_signature
-
-                                        })
-                                }
-                            );
-
-
-                        const verifyData =
-                            await verifyResponse.json();
-
-
-                        if (!verifyResponse.ok) {
-
-                            throw new Error(
-                                verifyData.error ||
-                                "Payment verification failed."
-                            );
-                        }
-
-
-                        /* =========================
-                           SUCCESS
-                        ========================= */
-
-                        setStatus(
-                            "Premium activated successfully!"
-                        );
-
-
-                        alert(
-                            "Payment successful! Your Premium access is now active for 6 months."
-                        );
-
-
-                        window.location.href =
-                            "https://upscdoomsday.github.io/make-questions/";
-
-
-                    } catch (error) {
-
-                        console.error(
-                            "Verification error:",
-                            error
-                        );
-
-                        setStatus(
-                            "Payment received, but verification failed. Please contact support."
-                        );
-
-                        alert(
-                            "Payment was received, but we could not verify it automatically. Please contact support and provide your Razorpay payment ID: " +
-                            response.razorpay_payment_id
-                        );
-
-                        button.disabled = false;
-                    }
-                },
-
-
-            /* =================================
-               MODAL CLOSED
-            ================================= */
-
-            modal: {
-
-                ondismiss:
-                    function() {
-
-                        setStatus("");
-
-                        button.disabled =
-                            false;
-
-                    }
-
-            }
-
-        };
-
-
-        const razorpay =
-            new Razorpay(options);
-
-
         /* =====================================
-           PAYMENT FAILED
+           OPEN PAYMENT LINK
         ===================================== */
 
-        razorpay.on(
-            "payment.failed",
-            function(response) {
-
-                console.error(
-                    "Razorpay payment failed:",
-                    response.error
-                );
-
-                setStatus(
-                    "Payment failed. Please try again."
-                );
-
-                alert(
-                    "Payment failed. Please try again."
-                );
-
-                button.disabled =
-                    false;
-            }
-        );
+        const paymentUrl =
+            RAZORPAY_PAYMENT_LINK;
 
 
-        razorpay.open();
+        /*
+           Open the Payment Link in the same tab.
+           Razorpay handles the complete checkout.
+        */
+
+        window.location.href =
+            paymentUrl;
 
 
     } catch (error) {
@@ -876,8 +654,7 @@ async function startPayment() {
             "Unable to start payment. Please try again."
         );
 
-        button.disabled =
-            false;
+        button.disabled = false;
     }
 
 }
