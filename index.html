@@ -14,6 +14,9 @@
     <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
 
         * {
@@ -391,6 +394,73 @@
             }
         }
 
+
+        /* =========================
+           AUTH + USAGE
+        ========================= */
+        .usage-bar {
+            margin: 0 auto 25px;
+            max-width: 1000px;
+            padding: 12px 18px;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #3730a3;
+        }
+        .usage-login-btn {
+            margin-left: 8px;
+            border: none;
+            border-radius: 7px;
+            padding: 7px 12px;
+            background: #4f46e5;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .usage-login-btn:hover {
+            background: #4338ca;
+        }
+        .upgrade-btn {
+            display: block;
+            margin: 8px auto 0;
+            border: none;
+            border-radius: 7px;
+            padding: 7px 14px;
+            background: #059669;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .upgrade-btn:hover {
+            background: #047857;
+        }
+        .auth-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(17,24,39,.38);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            padding: 20px;
+        }
+        .auth-modal {
+            width: min(420px, 100%); background:#fff; border-radius:18px;
+            padding:28px; box-shadow:0 25px 70px rgba(0,0,0,.22);
+        }
+        .auth-modal h2 { margin:0 0 8px; color:#312e81; }
+        .auth-subtitle { margin:0 0 20px; color:#6b7280; font-size:14px; }
+        .auth-field { width:100%; padding:13px; margin-bottom:12px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; }
+        .auth-submit { width:100%; border:0; border-radius:10px; padding:13px; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; font-weight:700; cursor:pointer; }
+        .auth-switch { width:100%; border:0; background:transparent; color:#4f46e5; margin-top:14px; cursor:pointer; font-weight:700; }
+        .auth-message { min-height:20px; margin-bottom:10px; font-size:13px; color:#dc2626; }
+        .user-bar { display:none; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin:0 auto 15px; font-size:13px; color:#4b5563; }
+        .logout-btn { border:1px solid #d1d5db; background:#fff; padding:7px 11px; border-radius:8px; cursor:pointer; font-weight:700; color:#4b5563; }
+        @media(max-width:650px){ .usage-bar{margin-left:13px;margin-right:13px;font-size:13px}.auth-modal{padding:22px} }
+
     </style>
 
 </head>
@@ -432,6 +502,12 @@
 
         </div>
 
+        <div class="user-bar" id="authUserBar">
+            <span id="authUserEmail"></span>
+            <button class="logout-btn" id="authLogout">Logout</button>
+        </div>
+
+        <div class="usage-bar" id="usageCounter">🎯 Login to see your free QCAB generations</div>
 
         <!-- =========================
              ADD QUESTION
@@ -546,10 +622,125 @@
 
 
     <!-- =========================
+         AUTH MODAL
+    ========================= -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-modal">
+            <h2 id="authTitle">Login</h2>
+            <p class="auth-subtitle" id="authSubtitle">Login to generate your QCAB.</p>
+            <div class="auth-message" id="authMessage"></div>
+            <form id="authForm">
+                <input class="auth-field" id="authEmail" type="email" placeholder="Email" required>
+                <input class="auth-field" id="authPassword" type="password" placeholder="Password" minlength="6" required>
+                <button class="auth-submit" id="authSubmit" type="submit">Login</button>
+            </form>
+            <button class="auth-switch" id="authSwitchBtn" type="button">Create an account</button>
+        </div>
+    </div>
+
+    <!-- =========================
          PAGE LOGIC
     ========================= -->
 
     <script>
+
+        /* =========================
+           SUPABASE AUTH + USAGE
+        ========================= */
+        const SUPABASE_URL = "https://suhcufvujmovwmougyzi.supabase.co";
+        const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ej6EKW2sVC8cvlh78fFAMQ_geNQgqWG";
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        const authOverlay = document.getElementById("authOverlay");
+        const authTitle = document.getElementById("authTitle");
+        const authSubtitle = document.getElementById("authSubtitle");
+        const authMessage = document.getElementById("authMessage");
+        const authForm = document.getElementById("authForm");
+        const authEmail = document.getElementById("authEmail");
+        const authPassword = document.getElementById("authPassword");
+        const authSubmit = document.getElementById("authSubmit");
+        const authSwitchBtn = document.getElementById("authSwitchBtn");
+        const authUserBar = document.getElementById("authUserBar");
+        const authUserEmail = document.getElementById("authUserEmail");
+        const authLogout = document.getElementById("authLogout");
+        const usageCounter = document.getElementById("usageCounter");
+        let authMode = "login";
+
+        function openAuthModal(){ authOverlay.style.display="flex"; authMessage.textContent=""; authEmail.focus(); }
+        function closeAuthModal(){ authOverlay.style.display="none"; }
+        function setAuthMode(mode){
+            authMode=mode; authTitle.textContent=mode==="login"?"Login":"Create Account";
+            authSubtitle.textContent=mode==="login"?"Login to generate your QCAB.":"Create an account to get 5 free QCAB generations.";
+            authSubmit.textContent=mode==="login"?"Login":"Create Account";
+            authSwitchBtn.textContent=mode==="login"?"Create an account":"Already have an account? Login";
+            authMessage.textContent="";
+        }
+        authSwitchBtn.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
+        authOverlay.addEventListener("click",e=>{if(e.target===authOverlay)closeAuthModal();});
+        authForm.addEventListener("submit",async e=>{
+            e.preventDefault(); authMessage.textContent=""; authSubmit.disabled=true;
+            const email=authEmail.value.trim(), password=authPassword.value;
+            try{
+                if(authMode==="signup"){
+                    const {data,error}=await window.supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
+                    if(error) throw error;
+                    if(data.session){ closeAuthModal(); }
+                    else authMessage.textContent="Account created. Please check your email to confirm your account.";
+                }else{
+                    const {error}=await window.supabaseClient.auth.signInWithPassword({email,password});
+                    if(error) throw error;
+                    closeAuthModal();
+                }
+            }catch(err){ authMessage.textContent=err.message||"Authentication failed."; }
+            finally{authSubmit.disabled=false;}
+        });
+        authLogout.addEventListener("click",async()=>{await window.supabaseClient.auth.signOut();});
+
+        function updateUsageDisplay(remaining){
+            if(remaining===null){
+                usageCounter.innerHTML = `🎯 Login to generate free QCABs
+                    <button type="button" class="usage-login-btn" id="usageLoginBtn">Login</button>`;
+                usageCounter.style.background="#eef2ff";
+
+                const usageLoginBtn = document.getElementById("usageLoginBtn");
+                if(usageLoginBtn){
+                    usageLoginBtn.addEventListener("click", openAuthModal);
+                }
+                return;
+            }
+
+            if(remaining===0){
+                usageCounter.innerHTML = `🎯 Free QCAB Generations Remaining: 0
+                    <a class="upgrade-btn" href="premium.html">Upgrade to Premium</a>`;
+                usageCounter.style.background="#fee2e2";
+            }else{
+                usageCounter.textContent=`🎯 Free QCAB Generations Remaining: ${remaining}`;
+                usageCounter.style.background="#eef2ff";
+            }
+        }
+        window.updateUsageDisplay=updateUsageDisplay;
+        async function refreshUsage(){
+            const {data:{session}}=await window.supabaseClient.auth.getSession();
+            if(!session){updateUsageDisplay(null);return;}
+            const {data,error}=await window.supabaseClient.from("user_usage").select("generations_used, access_level, access_expires_at").eq("user_id",session.user.id).single();
+            if(error){console.error("Usage fetch error:",error);updateUsageDisplay(null);return;}
+            const used=Number(data.generations_used||0);
+            updateUsageDisplay(Math.max(0,5-used));
+        }
+        window.refreshUsage=refreshUsage;
+
+        function updateAuthUI(session){
+            if(session){ authUserBar.style.display="flex"; authUserEmail.textContent=session.user.email||""; }
+            else {authUserBar.style.display="none";authUserEmail.textContent="";}
+        }
+        window.supabaseClient.auth.onAuthStateChange((_event,session)=>{
+            updateAuthUI(session);
+            setTimeout(refreshUsage,0);
+        });
+        (async()=>{
+            const {data:{session}}=await window.supabaseClient.auth.getSession();
+            updateAuthUI(session); refreshUsage();
+        })();
 
         /*
          * IMPORTANT:
@@ -558,7 +749,6 @@
          */
 
         window.customQuestions = [];
-
 
         const questionInput =
             document.getElementById("questionInput");
@@ -583,6 +773,35 @@
 
         const generateButton =
             document.getElementById("generateQCAB");
+
+        // Login is required before the PDF generator is allowed to run.
+        // This MUST be registered after generateButton is declared.
+        generateButton.addEventListener("click", async function(event){
+            const {data:{session}} = await window.supabaseClient.auth.getSession();
+            if(!session){
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                openAuthModal();
+            }
+        }, true);
+
+        /*
+         * After a logged-in user starts generating a QCAB, give the PDF
+         * generator time to read the current questions, then reset the
+         * question builder so the next QCAB starts completely fresh.
+         *
+         * The questions are NOT cleared when the user is logged out.
+         */
+        generateButton.addEventListener("click", async function(){
+            const {data:{session}} = await window.supabaseClient.auth.getSession();
+            if(!session || window.customQuestions.length === 0) return;
+
+            setTimeout(function(){
+                window.customQuestions = [];
+                renderQuestions();
+                questionInput.value = "";
+            }, 1500);
+        });
 
 
         /* =========================
