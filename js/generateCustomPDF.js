@@ -645,254 +645,126 @@ async function generateQCABPDF(
     // PART 1: QUESTION LISTING
     // ==========================================
 
-    let currentY =
-        topMargin;
+    // DETAILS BOX ON THE FIRST PAGE ONLY — MATCH GS PDF LAYOUT
+    const detailsBoxX = leftMargin;
+    const detailsBoxY = topMargin;
+    const detailsBoxWidth = rightMargin - leftMargin;
+    const detailsBoxHeight = 50;
 
-    const localWidth =
-        rightMargin -
-        leftMargin +
-        4;
+    doc.setLineWidth(0.3);
+    doc.rect(
+        detailsBoxX,
+        detailsBoxY,
+        detailsBoxWidth,
+        detailsBoxHeight
+    );
 
-    const lineHeight =
-        6;
+    doc.setFontSize(10);
 
+    // ROW 1: NAME
+    doc.text("Name:", 28, 21);
+    doc.line(42, 22, 182, 22);
 
-    for (
-        const q of questions
-    ) {
+    // ROW 2: TOPIC
+    doc.text("Topic:", 28, 31);
+    doc.line(42, 32, 182, 32);
 
-        if (
-            hasRichQuestion(q)
-        ) {
+    // ROW 3: NUMBER OF QUESTIONS + ESTIMATED TIME
+    doc.text("No of questions:", 28, 41);
+    doc.line(57, 42, 95, 42);
+
+    doc.text("Estimated time:", 105, 41);
+    doc.line(133, 42, 182, 42);
+
+    // ROW 4: START TIME + FINISH TIME
+    doc.text("Start Time:", 28, 51);
+    doc.line(49, 52, 95, 52);
+
+    doc.text("Finish Time:", 105, 51);
+    doc.line(129, 52, 182, 52);
+
+    // ROW 5: DATE
+    doc.text("Date:", 28, 61);
+    doc.line(39, 62, 95, 62);
+
+    doc.setFontSize(12);
+
+    // Keep the same 3.5 cm gap below the details box as the GS PDF
+    let currentY = topMargin + detailsBoxHeight + 35;
+
+    const localWidth = rightMargin - leftMargin + 4;
+    const lineHeight = 6;
+
+    for (const q of questions) {
+
+        if (hasRichQuestion(q)) {
 
             try {
+                const canvas = await renderQuestionToCanvas(q);
+                const imageHeight = Math.min(
+                    42,
+                    localWidth * canvas.height / canvas.width
+                );
 
-                const canvas =
-                    await renderQuestionToCanvas(
-                        q
-                    );
+                const meta = `[${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
+                const metaLines = doc.splitTextToSize(meta, 35);
+                const totalHeight = Math.max(
+                    imageHeight,
+                    metaLines.length * lineHeight
+                ) + lineHeight;
 
-                const imageHeight =
-                    Math.min(
-
-                        42,
-
-                        localWidth *
-                        canvas.height /
-                        canvas.width
-
-                    );
-
-                const meta =
-                    `[${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
-
-                const metaLines =
-                    doc.splitTextToSize(
-
-                        meta,
-
-                        35
-
-                    );
-
-                const totalHeight =
-                    Math.max(
-
-                        imageHeight,
-
-                        metaLines.length *
-                        lineHeight
-
-                    ) +
-                    lineHeight;
-
-
-                if (
-                    currentY +
-                    totalHeight >
-                    pageHeight - 15
-                ) {
-
+                if (currentY + totalHeight > pageHeight - 15) {
                     doc.addPage();
-
-                    currentY =
-                        topMargin;
-
+                    currentY = topMargin;
                 }
-
 
                 addCanvasImage(
-
                     doc,
-
                     canvas,
-
                     leftMargin + 2,
-
                     currentY,
-
                     localWidth,
-
                     42
-
                 );
 
-                doc.text(
-
-                    `${q.question_number}.`,
-
-                    leftMargin - 10,
-
-                    currentY + 5
-
-                );
-
-                doc.setFontSize(
-                    9
-                );
-
-                doc.text(
-
-                    metaLines,
-
-                    rightMargin + 2,
-
-                    currentY + 5
-
-                );
-
-                doc.setFontSize(
-                    12
-                );
-
-                currentY +=
-                    totalHeight + 3;
-
+                doc.text(`${q.question_number}.`, leftMargin - 10, currentY + 5);
+                doc.setFontSize(9);
+                doc.text(metaLines, rightMargin + 2, currentY + 5);
+                doc.setFontSize(12);
+                currentY += totalHeight + 3;
 
             } catch (error) {
+                console.error("Rich question rendering failed:", error);
 
-                console.error(
+                const fallback = `${q.question_text || ""}   [${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
+                const splitText = doc.splitTextToSize(fallback, localWidth);
+                const totalHeight = splitText.length * lineHeight + lineHeight;
 
-                    "Rich question rendering failed:",
-
-                    error
-
-                );
-
-                const fallback =
-                    `${q.question_text || ""}   [${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
-
-                const splitText =
-                    doc.splitTextToSize(
-
-                        fallback,
-
-                        localWidth
-
-                    );
-
-                const totalHeight =
-                    splitText.length *
-                    lineHeight +
-                    lineHeight;
-
-
-                if (
-                    currentY +
-                    totalHeight >
-                    pageHeight - 15
-                ) {
-
+                if (currentY + totalHeight > pageHeight - 15) {
                     doc.addPage();
-
-                    currentY =
-                        topMargin;
-
+                    currentY = topMargin;
                 }
 
-                doc.text(
-
-                    `${q.question_number}.`,
-
-                    leftMargin - 10,
-
-                    currentY
-
-                );
-
-                doc.text(
-
-                    splitText,
-
-                    leftMargin + 2,
-
-                    currentY
-
-                );
-
-                currentY +=
-                    totalHeight;
-
+                doc.text(`${q.question_number}.`, leftMargin - 10, currentY);
+                doc.text(splitText, leftMargin + 2, currentY);
+                currentY += totalHeight;
             }
 
         } else {
 
-            const qText =
-                `${q.question_text || ""}   [${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
+            const qText = `${q.question_text || ""}   [${q.marks} M${q.word_limit ? ` / ${q.word_limit} W` : ""}]`;
+            const splitText = doc.splitTextToSize(qText, localWidth);
+            const totalHeight = splitText.length * lineHeight + lineHeight;
 
-            const splitText =
-                doc.splitTextToSize(
-
-                    qText,
-
-                    localWidth
-
-                );
-
-            const totalHeight =
-                splitText.length *
-                lineHeight +
-                lineHeight;
-
-
-            if (
-                currentY +
-                totalHeight >
-                pageHeight - 15
-            ) {
-
+            if (currentY + totalHeight > pageHeight - 15) {
                 doc.addPage();
-
-                currentY =
-                    topMargin;
-
+                currentY = topMargin;
             }
 
-            doc.text(
-
-                `${q.question_number}.`,
-
-                leftMargin - 10,
-
-                currentY
-
-            );
-
-            doc.text(
-
-                splitText,
-
-                leftMargin + 2,
-
-                currentY
-
-            );
-
-            currentY +=
-                totalHeight;
-
+            doc.text(`${q.question_number}.`, leftMargin - 10, currentY);
+            doc.text(splitText, leftMargin + 2, currentY);
+            currentY += totalHeight;
         }
-
     }
 
 
@@ -930,324 +802,132 @@ async function generateQCABPDF(
     // PART 2: QCAB ANSWER PAGES
     // ==========================================
 
-    for (
-        const q of questions
-    ) {
+    // Match GS PDF answer-page layout
+    const answerLeftMargin = 15;
+    const answerRightMargin = 195;
+    const answerTopMargin = 0;
+    const answerBottomMargin = pageHeight;
+    const answerContentTop = 10;
 
-        const pagesNeeded =
-            getAnswerPages(q);
+    for (const q of questions) {
 
+        const pagesNeeded = getAnswerPages(q);
 
-        for (
-            let p = 0;
-            p < pagesNeeded;
-            p++
-        ) {
+        for (let p = 0; p < pagesNeeded; p++) {
 
             doc.addPage();
+            doc.setLineWidth(0.3);
 
-            doc.setLineWidth(
-                0.3
-            );
-
+            // Full-height vertical lines, 15 mm from each page edge
             doc.line(
-
-                leftMargin,
-
-                topMargin,
-
-                leftMargin,
-
-                bottomMargin
-
+                answerLeftMargin,
+                answerTopMargin,
+                answerLeftMargin,
+                answerBottomMargin
             );
-
             doc.line(
-
-                rightMargin,
-
-                topMargin,
-
-                rightMargin,
-
-                bottomMargin
-
+                answerRightMargin,
+                answerTopMargin,
+                answerRightMargin,
+                answerBottomMargin
             );
-
-
-            const footerText =
-                `XXXX-CUSTOM_${q.question_number}`;
-
-            doc.setFontSize(
-                8
-            );
-
-            doc.text(
-
-                footerText,
-
-                leftMargin - 10,
-
-                bottomMargin + 3
-
-            );
-
 
             // ==========================================
             // FIRST ANSWER PAGE
             // ==========================================
 
-            if (
-                p === 0
-            ) {
+            if (p === 0) {
 
-                doc.setFontSize(
-                    12
-                );
+                doc.setFontSize(12);
 
+                // Question number outside the left vertical line
                 doc.text(
-
                     `Q. ${q.question_number}`,
-
-                    leftMargin - 15,
-
-                    topMargin + 5
-
+                    answerLeftMargin - 10,
+                    answerContentTop + 5
                 );
 
+                // Keep question text inside the vertical lines
+                const localQuestionWidth = answerRightMargin - answerLeftMargin - 14;
+                let questionBottom = answerContentTop + 5;
 
-                const localQuestionWidth =
-                    rightMargin -
-                    leftMargin -
-                    4;
-
-                let questionBottom =
-                    topMargin + 5;
-
-
-                if (
-                    hasRichQuestion(q)
-                ) {
-
+                if (hasRichQuestion(q)) {
                     try {
-
-                        const canvas =
-                            await renderQuestionToCanvas(
-                                q
-                            );
-
-                        const image =
-                            addCanvasImage(
-
-                                doc,
-
-                                canvas,
-
-                                leftMargin + 2,
-
-                                topMargin,
-
-                                localQuestionWidth,
-
-                                55
-
-                            );
-
-                        questionBottom =
-                            topMargin +
-                            14 +
-                            image.height;
-
-
+                        const canvas = await renderQuestionToCanvas(q);
+                        const image = addCanvasImage(
+                            doc,
+                            canvas,
+                            answerLeftMargin + 2,
+                            answerContentTop,
+                            localQuestionWidth,
+                            55
+                        );
+                        questionBottom = answerContentTop + 14 + image.height;
                     } catch (error) {
-
-                        console.error(
-
-                            "Rich question rendering failed:",
-
-                            error
-
-                        );
-
-                        const splitText =
-                            doc.splitTextToSize(
-
-                                q.question_text || "",
-
-                                localQuestionWidth
-
-                            );
-
-                        doc.setFontSize(
-                            12
-                        );
-
-                        doc.text(
-
-                            splitText,
-
-                            leftMargin + 2,
-
-                            topMargin + 5
-
-                        );
-
-                        questionBottom =
-                            topMargin +
-                            5 +
-                            splitText.length * 6;
-
-                    }
-
-                } else {
-
-                    const splitText =
-                        doc.splitTextToSize(
-
-                            `${q.question_text || ""}`,
-
+                        console.error("Rich question rendering failed:", error);
+                        const splitText = doc.splitTextToSize(
+                            q.question_text || "",
                             localQuestionWidth
-
                         );
-
-                    doc.setFontSize(
-                        12
+                        doc.setFontSize(12);
+                        doc.text(splitText, answerLeftMargin + 2, answerContentTop + 5);
+                        questionBottom = answerContentTop + 5 + splitText.length * 6;
+                    }
+                } else {
+                    const splitText = doc.splitTextToSize(
+                        q.question_text || "",
+                        localQuestionWidth
                     );
-
-                    doc.text(
-
-                        splitText,
-
-                        leftMargin + 2,
-
-                        topMargin + 5
-
-                    );
-
-                    questionBottom =
-                        topMargin +
-                        5 +
-                        splitText.length * 6;
-
+                    doc.setFontSize(12);
+                    doc.text(splitText, answerLeftMargin + 2, answerContentTop + 5);
+                    questionBottom = answerContentTop + 5 + splitText.length * 6;
                 }
 
-
-                // ==========================================
-                // MARKS
-                // ==========================================
-
-                doc.setFontSize(
-                    12
-                );
-
-                const metadata = [
-
-                    q.marks != null
-                        ? `${q.marks} M`
-                        : ""
-
-                ]
-
-                    .filter(Boolean)
-
-                    .join(" / ");
-
-
-                doc.text(
-
-                    metadata,
-
-                    rightMargin + 2,
-
-                    topMargin + 5
-
-                );
-
-
-                // ==========================================
-                // ANSWER-WRITING AREA
-                // ==========================================
-
-                if (
-                    questionBottom <
-                    bottomMargin - 4
-                ) {
-
-                    doc.setFontSize(
-                        8
-                    );
-
-                    doc.setTextColor(
-
-                        110,
-
-                        110,
-
-                        110
-
-                    );
-
-                    doc.setTextColor(
-
-                        0,
-
-                        0,
-
-                        0
-
-                    );
-
+                // Marks and year stacked on the right, just outside the right line
+                doc.setFontSize(8);
+                if (q.marks != null) {
+                    doc.text(`${q.marks} M`, answerRightMargin + 2, answerContentTop + 5);
+                }
+                if (q.year != null && String(q.year).trim() !== "") {
+                    doc.text(String(q.year), answerRightMargin + 2, answerContentTop + 10);
                 }
 
+                // Preserve normal black text for the writing area
+                if (questionBottom < answerBottomMargin - 4) {
+                    doc.setTextColor(0, 0, 0);
+                }
 
             } else {
 
                 // ==========================================
-                // ORIGINAL MARGIN MESSAGE POSITION
+                // MARGIN INSTRUCTION — TWO WORDS PER ROW
                 // ==========================================
 
-                const localWidth =
-                    23;
+                doc.setFontSize(6);
+                const marginInstruction = [
+                    "Candidates",
+                    "must not",
+                    "write on",
+                    "margin"
+                ];
 
-                const splitText =
-                    doc.splitTextToSize(
-
-                        "Candidates must not write on this margin",
-
-                        localWidth
-
-                    );
-
-                doc.setFontSize(
-                    8
-                );
-
+                // Keep the margin instruction horizontal (normal orientation).
                 doc.text(
-
-                    splitText,
-
-                    rightMargin + 2,
-
-                    topMargin + 5
-
+                    marginInstruction,
+                    197,
+                    15,
+                    {
+                        lineHeightFactor: 1.3
+                    }
                 );
-
             }
-
         }
-
     }
-
 
     // ==========================================
     // SAVE PDF
     // ==========================================
 
-    window.generatedPDF =
-        doc;
-
-    doc.save(
-        "QCAB.pdf"
-    );
-
+    window.generatedPDF = doc;
+    doc.save("QCAB.pdf");
 }
